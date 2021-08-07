@@ -1,0 +1,128 @@
+---
+title: "Kapitel 10: Sparklyr"
+---
+
+```{r}
+# Install only once the first time
+install.packages("sparklyr")
+```
+
+```{r}
+# Load libraries
+library(sparklyr)
+library(dplyr)
+```
+
+```{r}
+spark_available_versions()
+```
+
+
+```{r}
+# Install only once the first time
+spark_install(version = "3.1")
+```
+
+```{r}
+# create the config file for the Spark server
+conf <- spark_config()
+#conf$sparklyr.defaultPackages <- "org.apache.hadoop:hadoop-aws:2.7.3" 
+conf$`sparklyr.cores.local` <- 6
+conf$`sparklyr.shell.driver-memory` <- "40G"
+conf$spark.memory.fraction <- 0.9
+conf$spark.driver.maxResultSize <- "40G"
+conf$spark.yarn.executor.memoryOverhead <- "512"
+```
+
+```{r}
+# create the connection to the spark server
+sc <- spark_connect(master = "local", 
+                    version = "3.1",
+                    config = conf)
+```
+
+```{r}
+# Nur beim ersten Mal installieren
+install.packages("nycflights13")
+```
+
+```{r}
+flights_tbl <- copy_to(sc, nycflights13::flights, "flights", overwrite = TRUE)
+```
+
+```{r}
+flights_delay <- flights_tbl %>%
+  group_by(tailnum) %>%
+  summarise(count = n(), dist = mean(distance), delay = mean(arr_delay)) %>%
+  filter(count > 20, dist < 2000, !is.na(delay))
+```
+
+```{r}
+flights_delay %>%
+  ggplot(delay, aes(dist, delay)) +
+  geom_point(aes(size = count), alpha = 1/2) +
+  geom_smooth() +
+  scale_size_area(max_size = 2)
+```
+
+```{r}
+flights_tbl %>%
+  select(carrier) %>%
+  unique()
+```
+
+
+```{r}
+flights %>%
+  group_by(carrier) %>%
+  mutate(median_delay = median(arr_delay, na.rm = TRUE)) %>%
+  select(carrier, median_delay) %>%
+  distinct() %>%
+  arrange(desc(median_delay))
+```
+```{r}
+delay <- flights_tbl %>%
+  group_by(tailnum) %>%
+  summarise(count = n(), dist = mean(distance), delay = mean(arr_delay)) %>%
+  filter(count > 20, dist < 2000, !is.na(delay)) %>%
+  collect()
+
+# plot delays
+library(ggplot2)
+ggplot(delay, aes(dist, delay)) +
+  geom_point(aes(size = count), alpha = 1/2) +
+  geom_smooth() +
+  scale_size_area(max_size = 2)
+```
+
+```{r}
+flights_tbl %>%
+  select(arr_delay,dep_delay) %>%
+  plot()
+```
+
+
+```{r}
+dt <- spark_read_csv(sc, "dt", "../rstudio/amz_small.csv")
+```
+
+```{r cache=TRUE}
+dt <- dt %>%
+  select(title,description,pubDate,item1,item2,item3,item4,item5,item6,item7,item8,item9,item10)
+```
+
+```{r}
+dt <- dt %>%
+  filter(!str_detect( "Oct 2017", pubDate))%>%
+  filter(!str_detect( "Jan 2017",pubDate)) %>%
+  filter(!str_detect( "Feb 2017",pubDate)) %>%
+  filter(!str_detect("Mar 2017", pubDate)) %>%
+   filter(!str_detect("Apr 2017", pubDate))%>%
+   filter(!str_detect("May 2017", pubDate))
+```
+
+```{r}
+my_dt <- collect(dt)
+```
+
+

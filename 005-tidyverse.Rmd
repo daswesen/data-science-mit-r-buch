@@ -1,0 +1,28 @@
+---
+title: "R Notebook"
+---
+
+```{r}
+plot(mtcars$cyl,mtcars$mpg)
+```
+
+
+```{r}
+plot(mtcars$cyl,mtcars$mpg, xlab="Anzahl Zylinder", ylab="Meilen pro Gallone", main="Verhältnis Anzahl Zylinder zu Meilen pro Gallone")
+```
+
+
+```{r}
+boxplot(mtcars$mpg~mtcars$cyl, xlab="Anzahl Zylinder", ylab="Meilen pro Gallone", main="Verhältnis Anzahl Zylinder zu Meilen pro Gallone")
+```
+
+```{r}
+library(ggplot2)
+```
+
+```{r}
+ggplot(mtcars, aes(x=as.factor(cyl), y=mpg)) + 
+    geom_boxplot(fill="slateblue", alpha=0.2) + 
+    xlab("Anzahl Zylinder")
+```
+

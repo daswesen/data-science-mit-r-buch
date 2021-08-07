@@ -1,0 +1,65 @@
+---
+title: "Kapitel 9: Assoziationsregeln"
+---
+
+```{r}
+library(arules)
+```
+
+```{r}
+a_list <- list( 
+# Die Beispiel-Daten, jede Zeile hier ist ein Kassenbon
+      c("apfel", "bier", "reis", "huhn"),
+      c("apfel", "bier", "reis"),
+      c("apfel", "bier"),
+      c("apfel", "birne"),
+      c("milch", "bier", "reis", "huhn"),
+      c("milch", "bier", "reis"),
+      c("milch", "bier"),
+      c("apfel", "birne")
+      )
+```
+
+```{r}
+trans <- as(a_list, "transactions")
+```
+
+```{r}
+trans.rules <- apriori(trans, parameter=list(supp=0.01, conf=0.3, 
+                                                target="rules"))
+```
+
+```{r}
+inspect(subset(trans.rules))
+```
+
+```{r}
+subrules <- head(trans.rules, n = 15, by = "lift")
+```
+
+```{r}
+library(arulesViz)
+```
+
+```{r}
+plot(subrules, method = "graph")
+```
+
+```{r}
+data("Groceries")
+```
+
+```{r}
+inspect(head(Groceries))
+```
+
+```{r}
+groc.rules <- apriori(Groceries, parameter=list(supp=0.01, conf=0.1, minlen=3,
+                                                target="rules"))
+```
+
+```{r}
+inspect(subset(groc.rules))
+```
+
+

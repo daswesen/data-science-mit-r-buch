@@ -1,0 +1,34 @@
+# Der allererste Befehl in jeder Programmiersprache :)
+print("hello world")
+
+7+4
+
+ergebnis <- 7 + 4
+
+ergebnis
+
+(ergebnis <- 7 + 4)
+
+Ergebnis
+
+zweites ergebnis <- 7-2
+
+ergebnis-2 <- 3
+
+ergebnis-2
+
+
+ergebnis <- "test"
+ergebnis
+
+
+meine_variable <- 2
+typeof(meine_variable)
+
+meine_variable <- "2"
+typeof(meine_variable)
+
+  
+ergebnis * 3
+
+  

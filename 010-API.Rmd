@@ -1,0 +1,10 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+install.packages("plumber")
+library(plumber)
+```
+

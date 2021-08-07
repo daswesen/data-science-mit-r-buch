@@ -1,0 +1,42 @@
+---
+title: "R Notebook"
+---
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+books <- read_delim("BX-CSV-Dump/BX-Books.csv", ";", escape_double = FALSE, trim_ws = TRUE)
+```
+
+
+```{r}
+books <- read_delim("BX-CSV-Dump/BX-Books.csv", ";", escape_backslash = TRUE, escape_double = FALSE, trim_ws = TRUE)
+```
+
+```{r}
+books %>%
+  select(`Book-Author`) %>%
+  filter(grepl("Tolkien",`Book-Author`,ignore.case=TRUE))
+```
+```{r}
+books %>%
+  select(`Book-Author`) %>%
+  filter(grepl("Tolkien",`Book-Author`,ignore.case=TRUE)) %>%
+  mutate(Autor = str_to_title(`Book-Author`))
+```
+```{r}
+users <- users %>%
+  mutate(Age = as.numeric(Age))
+## Warning: Problem with `mutate()` input `Age`.
+## x NAs introduced by coercion
+## ℹ Input `Age` is `as.numeric(Age)`.
+## Warning in mask$eval_all_mutate(dots[[i]]): NAs introduced by coercion
+```
+```{r}
+(users <- users %>%
+  filter(Age < 100 | Age > 6)  %>%
+  mutate(Age = NA))
+```
+

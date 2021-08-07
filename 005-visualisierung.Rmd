@@ -1,0 +1,137 @@
+---
+title: "R Notebook"
+---
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+plot(cars)
+```
+
+
+```{r}
+dataset1 <- anscombe %>%
+  select(x1,y1)
+dataset2 <- anscombe %>%
+  select(x2,y2)
+```
+
+```{r}
+mean(dataset1$x1)
+mean(dataset2$x2)
+mean(dataset1$y1)
+mean(dataset2$y2)
+```
+
+```{r}
+var(dataset1$x1)
+var(dataset2$x2)
+var(dataset1$y1)
+var(dataset2$y2)
+```
+
+```{r}
+cor(dataset1)
+cor(dataset2)
+```
+
+```{r}
+lm1 <- lm(dataset1$y1~dataset1$x1)
+lm1
+```
+
+```{r}
+lm2 <- lm(dataset2$y2~dataset2$x2)
+lm2
+```
+
+```{r}
+plot(dataset1, col = "red")
+abline(lm1)
+```
+
+```{r}
+plot(dataset2, col = "red")
+abline(lm2)
+```
+
+
+```{r}
+
+##-- now some "magic" to do the 4 regressions in a loop:
+ff <- y ~ x
+mods <- setNames(as.list(1:4), paste0("lm", 1:4))
+for(i in 1:4) {
+  ff[2:3] <- lapply(paste0(c("y","x"), i), as.name)
+  ## or   ff[[2]] <- as.name(paste0("y", i))
+  ##      ff[[3]] <- as.name(paste0("x", i))
+  mods[[i]] <- lmi <- lm(ff, data = anscombe)
+  print(anova(lmi))
+}
+
+## See how close they are (numerically!)
+sapply(mods, coef)
+lapply(mods, function(fm) coef(summary(fm)))
+
+
+
+```
+
+
+
+```{r}
+## Now, do what you should have done in the first place: PLOTS
+op <- par(mfrow = c(2, 2), mar = 0.1+c(4,4,1,1), oma =  c(0, 0, 2, 0))
+for(i in 1:4) {
+  ff[2:3] <- lapply(paste0(c("y","x"), i), as.name)
+  plot(ff, data = anscombe, col = "red", pch = 21, bg = "orange", cex = 1.2,
+       xlim = c(3, 19), ylim = c(3, 13))
+  abline(mods[[i]], col = "blue")
+}
+mtext("Anscombe-Quartett", outer = TRUE, cex = 1.5)
+par(op)
+```
+
+
+```{r}
+plot(mtcars$cyl,mtcars$mpg)
+```
+
+
+```{r}
+plot(mtcars$cyl,mtcars$mpg, xlab="Anzahl Zylinder", ylab="Meilen pro Gallone", main="Verhältnis Anzahl Zylinder zu Meilen pro Gallone")
+```
+
+
+```{r}
+boxplot(mtcars$mpg~mtcars$cyl, xlab="Anzahl Zylinder", ylab="Meilen pro Gallone", main="Verhältnis Anzahl Zylinder zu Meilen pro Gallone")
+```
+
+```{r}
+library(ggplot2)
+```
+
+```{r}
+ggplot(mtcars, aes(x=as.factor(cyl), y=mpg)) + 
+    geom_boxplot(fill="slateblue", alpha=0.2) + 
+    xlab("Anzahl Zylinder")
+```
+
+```{r}
+mtcars %>%
+  select(cyl, mpg) %>%
+  ggplot(., aes(x=as.factor(cyl), y=mpg)) + 
+    geom_boxplot(fill="slateblue", alpha=0.2) + 
+    xlab("Anzahl Zylinder")
+```
+
+```{r}
+library(nycflights13)
+```
+
+```{r}
+flights
+```
+
