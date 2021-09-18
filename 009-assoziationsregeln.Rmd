@@ -25,6 +25,11 @@ trans <- as(a_list, "transactions")
 ```
 
 ```{r}
+str(trans)
+```
+
+
+```{r}
 trans.rules <- apriori(trans, parameter=list(supp=0.01, conf=0.3, 
                                                 target="rules"))
 ```

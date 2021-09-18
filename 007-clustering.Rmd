@@ -1,0 +1,169 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+```
+
+
+```{r}
+ages_pupils <- sample(10:20, 20, replace = TRUE)
+ages_pupils
+```
+
+```{r}
+ages_teachers <- sample(30:65, 5, replace = TRUE)
+ages_teachers
+```
+
+
+```{r}
+ages <- c(ages_pupils, ages_teachers)
+```
+
+```{r}
+ages.dist <- dist(ages)
+```
+
+```{r}
+ages.dist
+```
+
+
+```{r}
+ages.hc <- hclust(ages.dist, method = "complete")
+plot(ages.hc)
+```
+```{r}
+groups <- cutree(ages.hc, k=2) 
+data.frame(ages) %>%
+  mutate(cluster = groups)
+```
+
+```{r}
+hist(ages, breaks=20)
+```
+
+```{r}
+heights_pupils <- sample(130:200, 20, replace = TRUE)
+heights_pupils
+```
+
+```{r}
+heights_teachers <- sample(160:200, 5, replace = TRUE)
+heights_teachers
+```
+
+```{r}
+teachers <- teachers %>%
+  rename(age = ages_teachers, height = heights_teachers)
+```
+
+```{r}
+school <- rbind(pupils, teachers)
+```
+
+```{r}
+dist(school)
+```
+
+```{r}
+mean(school$age)
+```
+
+```{r}
+sd(school$age)
+```
+
+```{r}
+(school[1,1] - mean(school$age)) / sd(school$age)
+```
+
+```{r}
+head(scale(school))
+```
+```{r}
+school.hc <- hclust(school.dist, method = "complete")
+plot(school.hc)
+#groups <- cutree(school.hc, k=3) 
+rect.hclust(school.hc, k=3, border="red")
+```
+
+
+```{r}
+wine.dist <- dist(scale(wine[,-1]))
+wine.hc <- hclust(wine.dist)
+plot(wine.hc)
+rect.hclust(wine.hc, k=3, border="red")
+```
+
+```{r}
+wine.scaled <- as.data.frame(scale(wine[,-1]))
+
+
+wss <- (nrow(wine.scaled)-1)*sum(apply(wine.scaled,2,var))
+  for (i in 2:10) wss[i] <- sum(kmeans(wine.scaled,
+                                       centers=i)$withinss)
+plot(1:10, wss, type="b", xlab="Number of Clusters",
+     ylab="Within groups sum of squares")
+
+```
+
+```{r}
+k.means.fit <- kmeans(wine.scaled, 3) 
+table(wine$X1,k.means.fit$cluster)
+```
+
+```{r}
+cbind(wine$X1,k.means.fit$cluster)
+```
+```{r}
+library(cluster)
+clusplot(wine, k.means.fit$cluster, color=TRUE, shade=TRUE,
+labels=2, lines=0, main="K-means cluster plot")
+
+```
+```{r}
+seg.summ <- function(data, groups) {
+ aggregate(data, list(groups), function(x) mean(as.numeric(x))) 
+  }
+```
+
+
+```{r}
+seg.summ(wine, k.means.fit$cluster)
+```
+
+```{r}
+school.scaled <- scale(school)
+wss <- (nrow(school.scaled)-1)*sum(apply(school.scaled,2,var))
+  for (i in 2:10) wss[i] <- sum(kmeans(school.scaled,
+                                       centers=i)$withinss)
+plot(1:10, wss, type="b", xlab="Number of Clusters",
+     ylab="Within groups sum of squares")
+```
+```{r}
+plot(school.scaled)
+```
+
+
+```{r}
+start <- matrix(c(2, 1, -0.5, 0),  2)
+school.fit <- kmeans(school.scaled, centers = start)
+school.fit
+```
+```{r}
+school.comp <- as.data.frame(cbind(school.scaled,school.fit$cluster))
+school.comp <- school.comp %>%
+  rename(Cluster = V3)
+```
+
+
+```{r}
+ggplot() + 
+  geom_point(data = as.data.frame(school.comp), aes(age, height, shape = factor(Cluster)), size=3) + 
+  geom_point(data = as.data.frame(school.fit$centers), aes(age, height), color = "red", shape="diamond", size=4)
+```
+
