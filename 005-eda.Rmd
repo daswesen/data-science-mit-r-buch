@@ -1,0 +1,175 @@
+---
+title: "Explorative Datenanalyse"
+output: html_notebook
+---
+
+```{r}
+#install.packages("nycflights13")
+```
+```{r}
+library(nycflights13)
+library(tidyverse)
+```
+
+```{r}
+flights
+```
+
+```{r}
+airports
+```
+
+```{r}
+weather
+```
+
+```{r}
+planes
+```
+
+```{r}
+planes %>%
+  filter(!is.na(speed))
+```
+
+
+```{r}
+airlines
+```
+
+```{r}
+flights %>%
+ group_by(dest) %>%
+ summarize(Number_of_Flights = n())
+```
+
+```{r}
+flights %>%
+  left_join(airports, by = c("dest" = "faa")) %>%
+  mutate(name = if_else(dest == "BQN", "Rafael Hernandez Airport", name))
+```
+
+```{r}
+my_flights <- flights %>%
+  left_join(airlines) %>%
+  rename(airline = name) %>%
+  left_join(airports, c("dest" = "faa")) %>%
+  rename(airport = name) %>%
+  left_join(weather) %>%
+  left_join(planes, by = "tailnum") %>%
+  mutate(temp = (temp-32)/1.8)
+  
+```
+
+```{r}
+data <- my_flights %>%
+  filter(dep_delay > 15)
+  ggplot(data = data,  aes(x=dep_delay)) + 
+  geom_histogram(binwidth = 15)
+```
+```{r}
+hist(my_flights$dep_delay)
+```
+```{r}
+summary(data$dep_delay)
+```
+
+
+```{r}
+data <- my_flights %>%
+  filter(dep_delay > 10)
+ggplot(data = data,  aes(x=dep_delay)) + 
+  geom_boxplot() +
+  scale_x_continuous(breaks= seq(0, 1350, by=60))
+```
+
+
+```{r}
+airports %>%
+  mutate(continent = str_remove(tzone, "/.*")) %>%
+  mutate(town = str_extract(tzone, "[_a-zA-Z]*$"))
+```
+
+```{r}
+flights %>%
+  select(distance,dep_delay) %>%
+  plot()
+```
+
+```{r}
+flights %>%
+  select(distance,dep_delay) 
+```
+```{r}
+cor.test(flights$arr_delay,flights$distance)
+```
+```{r}
+
+modell <- lm(dep_delay~dep_time+air_time+temp+wind_speed, data = my_flights)
+summary(modell)
+```
+```{r}
+boxplot(my_flights$dep_delay~my_flights$dep_time)
+```
+
+```{r}
+pairs(~dep_delay+speed+distance+arr_delay+engines+seats+temp+wind_speed, data=my_flights)
+```
+```{r}
+my_flights %>%
+  select(dep_delay,arr_delay) %>%
+  filter(dep_delay > 10) %>%
+  plot()
+```
+```{r}
+dep_arr_delay <- my_flights %>%
+  select(dep_delay,arr_delay) %>%
+  filter(dep_delay > 10) 
+cor.test(dep_arr_delay$dep_delay,dep_arr_delay$arr_delay, method="spearman")
+```
+```{r}
+data <- data %>%
+  mutate(my_wday = paste(day,"-",month,"-", year.x, sep="")) %>%
+  mutate(the_date = as.Date(my_wday, '%d-%m-%Y')) %>%
+  mutate(wday = weekdays(as.Date(my_wday, '%d-%m-%Y'))) %>%
+  mutate(wday = factor(wday, levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")))
+```
+
+
+```{r}
+boxplot(data$dep_delay~data$wday, xlab = "", ylab = "Verspätung", las=2,varwidth=TRUE,)
+```
+
+```{r}
+my_stats <- boxplot(data$dep_delay~data$wday, xlab = "", ylab = "Verspätung", las=2,varwidth=TRUE,)
+my_stats$stats
+```
+
+
+```{r}
+engines_delay <- my_flights %>%
+  select(engines,dep_delay) %>%
+  filter(!is.na(dep_delay)) %>%
+  filter(!is.na(engines)) %>%
+  filter(dep_delay > 10) 
+boxplot(engines_delay$dep_delay~engines_delay$engines, varwidth=TRUE)
+```
+```{r}
+my_flights %>%
+  select(dep_time,dep_delay) %>%
+  filter(dep_delay>10) %>%
+  plot()
+```
+```{r}
+my_flights %>%
+   select(dep_time,dep_delay) %>%
+   filter(dep_delay>10)
+```
+```{r}
+my_flights %>%
+  filter(dep_time< 1800) %>%
+  filter(dep_time> 499) %>%
+  select(dep_time) %>%
+  plot()
+```
+

@@ -1,0 +1,118 @@
+---
+title: "Correlation Test"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+library(tidyverse)
+```
+
+# Importieren und Transformation der Daten
+
+Bitte passen Sie den Pfad für Ihren Import an.
+
+```{r}
+titanic <- read_delim("/Users/tom/Documents/14_Data/titanic.csv", 
+    ";", escape_double = FALSE, col_types = cols(age = col_double()), 
+    locale = locale(decimal_mark = ",", grouping_mark = "."), 
+    trim_ws = TRUE)
+```
+
+```{r}
+titanic <- titanic %>%
+  mutate(gender = ifelse(sex == "female",1,0))
+```
+
+# Analyse
+
+## Erstellen einer Kontingenztabelle
+
+```{r}
+table(titanic$survived,titanic$gender)
+```
+
+## Chi Square Test
+
+```{r}
+chisq <- chisq.test(titanic$survived,titanic$gender)
+chisq
+```
+
+```{r}
+chisq$observed
+```
+
+```{r}
+chisq$expected
+```
+
+
+
+
+## Nutzung von Cramers V für die Messung der Stärke des Zusammenhangs
+
+```{r}
+library(lsr)
+cramersV(table(titanic$survived,titanic$gender))
+```
+
+## Was wäre mit Spearman rausgekommen?
+
+```{r}
+cor.test(titanic$survived,titanic$gender, method = "spearman", exact = FALSE)
+```
+
+Soooo anders fällt das Ergebnis hier also nicht aus :)
+
+# Zu beachten
+
+Der Chi-Quadrat-Test spuckt Fehler aus, wenn wir uns die Korrelation von Überleben und dem Alter ansehen wollen:
+
+```{r}
+agechisq.test <- chisq.test(titanic$survived,as.factor(titanic$age))
+agechisq.test
+```
+
+Auch Cramers V warnt:
+
+```{r}
+cramersV(table(titanic$survived,as.factor(titanic$age)))
+```
+
+Das Ergebnis sollte mit viel Vorsicht genossen werden. Oder am besten gar nicht :)
+
+Was, wenn wir hier wieder Spearman verwenden (wie es auch von einigen von Ihnen getan wurde und was ich im Forum auch als korrekt angemerkt hatte)?
+
+```{r}
+cor.test(titanic$survived,titanic$age, method = "spearman", exact = FALSE)
+```
+
+Der p-Wert ist hier über 0.05, die Nullhypothese, dass es keine Korrelation gibt, wird hier nicht abgelehnt. Allerdings müssen wir uns auch hier fragen, wie sinnvoll der Test ist, denn es werden ja Ränge gebildet, wobei eine Variable ja nur aus 0 und 1 besteht und damit beim Rang sehr wenig zu "sagen" hat. Es wird viele Fälle von "Unentschieden" geben. 
+
+Eine andere Möglichkeit ist die Nutzung der Punktbiseriale Korrelation:
+
+```{r}
+library(ltm)
+biserial.cor(titanic$age, titanic$survived, use = "complete.obs", level = 1)
+```
+
+Werden die Daten geplottet, so ist es schwierig, einen Zusammenhang zu erkennen.
+
+Sie könnten aber auch Alterskategorien bilden und dann wieder den Chi-Square Test ausprobieren. Dann aber gehen Informationen verloren.
+
+Was ist mit der Klasse?
+
+```{r}
+table(titanic$survived,titanic$pclass)
+```
+
+
+```{r}
+chisq.test(titanic$survived,titanic$pclass)
+```
+
+```{r}
+cramersV(table(titanic$survived,titanic$pclass))
+```

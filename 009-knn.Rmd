@@ -1,0 +1,438 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+credit_data <- read_table2("~/Desktop/german.data.csv", 
+    col_names = FALSE)
+```
+
+Attribute 1:  (qualitative)
+	       Status of existing checking account
+               A11 :      ... <    0 DM
+	       A12 : 0 <= ... <  200 DM
+	       A13 :      ... >= 200 DM /
+		     salary assignments for at least 1 year
+               A14 : no checking account
+               
+```{r}
+credit_data <- credit_data %>%
+  rename(kontostand = X1) %>%
+  mutate(kontostand = if_else(kontostand == "A11", "im Dispo", if_else(kontostand == "A12", "unter 200 DM", if_else(kontostand == "A13", "mehr als 200 DM", "Kein Konto"))))
+```
+
+
+Attribute 2:  (numerical)
+	      Duration in month
+	      
+```{r}
+credit_data <- credit_data %>%
+  rename(dauer = X2)
+```
+
+Attribute 3:  (qualitative)
+	      Credit history
+	      A30 : no credits taken/
+		    all credits paid back duly
+              A31 : all credits at this bank paid back duly
+	      A32 : existing credits paid back duly till now
+              A33 : delay in paying off in the past
+	      A34 : critical account/
+		    other credits existing (not at this bank)
+		    
+```{r}
+credit_data <- credit_data %>%
+  rename(kredithistorie = X3) %>%
+  mutate(kredithistorie = if_else(kredithistorie == "A31", "keine Kredite/puenktliche Zahlung", if_else(kredithistorie == "A32", "Alle Kredite bei dieser Bank puenktlich bezahlt", if_else(kredithistorie == "A33", "Bestehender Kredit wird puenktlich bedient", if_else(kredithistorie == "34", "Verzoegerungen in der Vergangenheit", "Kritisches Konto / Kredite bei anderer Bank")))))
+```
+
+
+Attribute 4:  (qualitative)
+	      Purpose
+	      A40 : car (new)
+	      A41 : car (used)
+	      A42 : furniture/equipment
+	      A43 : radio/television
+	      A44 : domestic appliances
+	      A45 : repairs
+	      A46 : education
+	      A47 : (vacation - does not exist?)
+	      A48 : retraining
+	      A49 : business
+	      A410 : others
+	      
+```{r}
+credit_data <- credit_data %>%
+  rename(zweck = X4) %>%
+  mutate(zweck = if_else(zweck == "A40", "Neuwagen", if_else(zweck == "A41", "Gebrauchtwagen", if_else(zweck == "A42", "Moebel", if_else(zweck == "A43", "Unterhaltungselektronik", if_else(zweck == "A44", "Haushaltsgeraete", if_else(zweck == "A45", "Reparaturen", if_else(zweck == "A46", "Ausbildung", if_else(zweck == "A48", "Umschulung", if_else(zweck == "A49", "Geschaeft", "Anderes"))))))))))
+```
+
+
+Attribute 5:  (numerical)
+	      Credit amount
+	      
+```{r}
+credit_data <- credit_data %>%
+  rename(kreditbetrag = X5)
+```
+
+
+Attibute 6:  (qualitative)
+	      Savings account/bonds
+	      A61 :          ... <  100 DM
+	      A62 :   100 <= ... <  500 DM
+	      A63 :   500 <= ... < 1000 DM
+	      A64 :          .. >= 1000 DM
+              A65 :   unknown/ no savings account
+              
+```{r}
+credit_data <- credit_data %>%
+  rename(ersparnisse = X6) %>%
+  mutate(ersparnisse = if_else(ersparnisse == "A61", "weniger als 100", if_else(ersparnisse == "A62", "zwischen 100 und 500", if_else(ersparnisse == "A63", "zwischen 500 und 1.000", if_else(ersparnisse == "A64", "ueber 1.000", "unbekannt / kein Konto")))))
+```
+
+
+Attribute 7:  (qualitative)
+	      Present employment since
+	      A71 : unemployed
+	      A72 :       ... < 1 year
+	      A73 : 1  <= ... < 4 years  
+	      A74 : 4  <= ... < 7 years
+	      A75 :       .. >= 7 years
+	      
+```{r}
+credit_data <- credit_data %>%
+  rename(beschaeftigt_seit = X7) %>%
+  mutate(beschaeftigt_seit = if_else(beschaeftigt_seit == "A71", "arbeitslos", if_else(beschaeftigt_seit == "A72", "weniger als 1 Jahr", if_else(beschaeftigt_seit == "A73", "zwischen 1 und 4 Jahren", if_else(beschaeftigt_seit == "A74", "zwischen 4 und 7 Jahren", "laenger als 7 Jahre")))))
+```
+
+
+Attribute 8:  (numerical)
+	      Installment rate in percentage of disposable income
+
+```{r}
+credit_data <- credit_data %>%
+  rename(rate_vs_einkommen = X8)
+```
+
+
+Attribute 9:  (qualitative)
+	      Personal status and sex
+	      A91 : male   : divorced/separated
+	      A92 : female : divorced/separated/married
+              A93 : male   : single
+	      A94 : male   : married/widowed
+	      A95 : female : single
+	      
+```{r}
+credit_data$status <- credit_data$X9
+credit_data <-  credit_data %>%
+    mutate(status = if_else(status == "A91", "geschieden / getrennt", if_else(status == "A91", "verheiratet/geschieden/getrennt", if_else(status == "A91", "single", if_else(status == "A94", "verheiratet / verwitwet", "single")))))
+```
+
+```{r}
+credit_data <- credit_data %>%
+  rename(geschlecht = X9) %>%
+  mutate(geschlecht = ifelse(geschlecht == "A91" | geschlecht == "A93" | geschlecht == "A94", "maennlich", "weiblich"))
+```
+
+
+
+
+Attribute 10: (qualitative)
+	      Other debtors / guarantors
+	      A101 : none
+	      A102 : co-applicant
+	      A103 : guarantor
+	      
+```{r}
+credit_data <- credit_data %>%
+  rename(mitschuldner = X10) %>%
+  mutate(mitschuldner = if_else(mitschuldner == "A101", "keine", if_else(mitschuldner == "A102", "weiterer Kreditnehmer", "Buerge")))
+```
+
+
+Attribute 11: (numerical)
+	      Present residence since
+	      
+```{r}
+credit_data <- credit_data %>%
+  rename(meldeadresse_seit = X11)
+```
+
+
+Attribute 12: (qualitative)
+	      Property
+	      A121 : real estate
+	      A122 : if not A121 : building society savings agreement/
+				   life insurance
+              A123 : if not A121/A122 : car or other, not in attribute 6
+	      A124 : unknown / no property
+	      
+```{r}
+credit_data <- credit_data %>%
+  rename(vermoegen = X12) %>%
+  mutate(vermoegen = if_else(vermoegen == "A122", "Immobilien", if_else(vermoegen == "A122", "Lebensversicherung", if_else(vermoegen == "A123", "Auto", "unbekannt / kein Vermoegen"))))
+```
+
+
+Attribute 13: (numerical)
+	      Age in years
+	      
+```{r}
+credit_data <- credit_data %>%
+  rename(alter = X13)
+```
+
+
+Attribute 14: (qualitative)
+	      Other installment plans 
+	      A141 : bank
+	      A142 : stores
+	      A143 : none
+	      
+```{r}
+credit_data <- credit_data %>%
+  rename(verpflichtungen = X14) %>%
+  mutate(verpflichtungen = if_else(verpflichtungen == "A141", "Bank", if_else(verpflichtungen == "A142", "Laden", "keine")))
+```
+
+
+Attribute 15: (qualitative)
+	      Housing
+	      A151 : rent
+	      A152 : own
+	      A153 : for free
+
+```{r}
+credit_data <- credit_data %>%
+  rename(wohnung = X15) %>%
+  mutate(wohnung = if_else(wohnung == "A151", "Miete", if_else(wohnung == "A152", "Eigentum", "kostenlos")))
+```
+
+
+Attribute 16: (numerical)
+              Number of existing credits at this bank
+
+```{r}
+(credit_data <- credit_data %>%
+  rename(bestehende_kredite = X16))
+```
+
+
+Attribute 17: (qualitative)
+	      Job
+	      A171 : unemployed/ unskilled  - non-resident
+	      A172 : unskilled - resident
+	      A173 : skilled employee / official
+	      A174 : management/ self-employed/
+		     highly qualified employee/ officer
+		     
+```{r}
+credit_data <- credit_data %>%
+  rename(job = X17) %>%
+  mutate(job = if_else(job == "A171", "ungelernt/nicht angestellt", if_else(job == "A172", "ungelernt / angestellt", if_else(job == "A173", "Facharbeiter / Beamter", "Management, selbstaendig, hochqualifiziert"))))
+```
+
+
+Attribute 18: (numerical)
+	      Number of people being liable to provide maintenance for
+	      
+```{r}
+credit_data <- credit_data %>%
+  rename(unterhaltspflichtig = X18)
+```
+
+
+Attribute 19: (qualitative)
+	      Telephone
+	      A191 : none
+	      A192 : yes, registered under the customers name
+
+
+```{r}
+credit_data <- credit_data %>%
+  rename(telefon = X19) %>%
+  mutate(telefon = if_else(telefon == "A191", "nein", "ja"))
+```
+
+
+Attribute 20: (qualitative)
+	      foreign worker
+	      A201 : yes
+	      A202 : no
+
+
+```{r}
+credit_data <- credit_data %>%
+  select(-X20)
+```
+
+```{r}
+credit_data <- credit_data %>%
+  rename(ergebnis = X21)
+```
+
+```{r}
+write_csv(credit_data, "kreditrisiken.csv")
+```
+
+
+
+
+```{r}
+library(caret)
+ergebnis <- credit_data$ergebnis
+credit_data <- credit_data %>%
+  select(-ergebnis)
+dummies <- dummyVars(~ ., data = credit_data, fullRank = T)
+credit_dummy.data <- data.frame(predict(dummies, newdata = credit_data))
+credit_dummy.data.scaled <- scale(credit_dummy.data)
+credit_data_final <- as.data.frame(cbind(ergebnis, credit_dummy.data.scaled))
+```
+
+```{r}
+set.seed(3456)
+trainIndex <- createDataPartition(credit_data_final$ergebnis, p = .8, 
+                                  list = FALSE, 
+                                  times = 1)
+```
+
+
+```{r}
+creditTrain <- credit_data_final[ trainIndex,]
+creditTest  <- credit_data_final[-trainIndex,]
+train.labels <- creditTrain[,1]
+test.labels <- creditTest[,1]
+creditTrain <- creditTrain[,-1]
+creditTest <- creditTest[,-1]
+```
+
+
+```{r}
+library(class)
+```
+
+```{r}
+knn_results <- knn(train = creditTrain, test = creditTest, cl = train.labels, prob = T, k = 4)
+comp <- cbind(knn_results, test.labels)
+xtab <- table(knn_results, test.labels)
+confusionMatrix(xtab)
+```
+```{r}
+knn_results_full <- cbind(knn_results, test.labels, creditTest)
+knn_results_wrong <- knn_results_full %>%
+  filter(knn_results != test.labels)
+```
+
+
+
+
+```{r}
+ages <- c(14, 11, 11, 18, 17, 13, 15, 14, 12, 19, 12, 19, 19, 13, 16, 22, 11, 11, 18, 13, 42, 37, 42, 41, 39)
+```
+
+```{r}
+library(FNN)
+knn.index(ages, k=4)
+```
+
+```{r}
+my_k = 2
+age.knn <- knn.index(ages, k=my_k)
+nachbarn <- unlist(age.knn, use.names=FALSE)
+nachbarn <- unique(nachbarn[1:(25*my_k)])
+length(nachbarn)
+```
+
+```{r}
+element <- 1:length(ages)
+(ausreisser <- element[which(!element %in% nachbarn)])
+```
+
+```{r}
+ages[ausreisser]
+```
+
+```{r}
+
+nachbarn <- dbscan::kNN(as.matrix(ages), k=5)
+nachbarn$id
+```
+
+
+```{r}
+my_k <- 3
+nachbarn <- dbscan::kNN(as.matrix(ages), k=my_k)
+nachbarn <- nachbarn$id
+nachbarn <- unlist(as.list(nachbarn))
+nachbarn <- unique(nachbarn[1:(25*my_k)])
+length(nachbarn)
+```
+
+```{r}
+element <- 1:length(ages)
+(ausreisser <- element[which(!element %in% nachbarn)])
+```
+
+```{r}
+ages[ausreisser]
+```
+
+
+```{r}
+library(Rlof)
+lof(ages,c(3:8),cores=2)
+```
+
+```{r}
+credit_lof <- lof(knn_results_full[,3:47],k=c(4:5),cores=2)
+lof_comp <- cbind(credit_lof,knn_results_full)
+lof_comp[1:4] %>%
+  arrange(desc(`5`)) %>%
+  head()
+```
+
+
+```{r}
+get.knn(knn_results_full[,3:47], k=5)
+```
+
+
+```{r}
+get_knn <- as.data.frame(get.knn(knn_results_full[,3:47], k=5))
+get_knn$id <- seq.int(nrow(get_knn))
+get_knn <- cbind(lof_comp,get_knn)
+row_num <- data.frame(as.integer(rownames(get_knn)))
+row_num <- row_num %>%
+  rename(my_row = as.integer.rownames.get_knn..)
+get_knn <- cbind(row_num, get_knn)
+```
+
+```{r}
+get_knn %>%
+  filter(my_row == 814) %>%
+  select(nn.index.1,nn.index.2,nn.index.3,nn.index.4,nn.index.5)
+
+```
+```{r}
+get_knn %>%
+  filter(my_row == 814)
+```
+
+
+```{r}
+get_knn %>%
+  filter(id == 131)
+```
+
+
+```{r}
+all_data <- cbind(credit_data,credit_dummy.data.scaled)
+```
+

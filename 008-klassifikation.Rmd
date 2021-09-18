@@ -1,0 +1,460 @@
+---
+title: "R Notebook"
+---
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(pROC)
+```
+
+
+
+
+
+
+```{r}
+titanic <- read_delim("titanic.csv", delim = ";", 
+    escape_double = FALSE, trim_ws = TRUE)
+```
+
+
+
+
+
+Eine andere Möglichkeit, Dummy-Variablen zu erstellen, bietet das Caret-Package. Der Parameter fullRank sorgt dafür, dass wir Anzahl Merkmalsausprägungen - 1 erzeugen:
+
+```{r}
+library(caret)
+dmy <- dummyVars(" ~ sex", data = titanic, fullRank=T)
+trsf <- data.frame(predict(dmy, newdata = titanic))
+print(trsf)
+```
+```{r}
+titanic_subset <- titanic %>%
+  select(survived,pclass,age) %>%
+  mutate(age = str_replace(age,",",".")) %>%
+  mutate(age = as.double(age)) %>%
+  mutate(survived = as.factor(survived))
+titanic_subset <- cbind(titanic_subset,trsf)
+titanic_subset <- titanic_subset %>%
+  filter(!is.na(age))
+```
+
+
+Der Datensatz wird in Trainings- und Test-Daten geteilt. Hierfür verwenden wir wieder die Library Caret, denn wir wollen, dass in unseren Samples das Feature "Survived" gleichmäßig ausgeprägt ist.
+
+```{r}
+set.seed(456)
+trainIndex=createDataPartition(titanic_subset$survived, p=0.8)$Resample1
+train.data=titanic_subset[trainIndex, ]
+test.data=titanic_subset[-trainIndex, ]
+```
+
+
+## Decision Tree
+```{r}
+library(rpart)
+library(rpart.plot)
+tree<- rpart(survived~., data = train.data, method = 'class')
+rpart.plot(tree)
+```
+```{r}
+dt_results <- predict(tree, test.data[,-1], type = 'prob')
+head(model.results.dt <- cbind(test.data,dt_results))
+```
+```{r}
+test.results <- model.results.dt %>%
+  mutate(pred = ifelse(`1`>=0.5,1,0))
+table(test.results$pred, test.data$survived)
+```
+
+library(pROC)
+pROC_obj <- roc(as.numeric(test.data$survived), probs,
+            smoothed = TRUE,
+            ci=TRUE, ci.alpha=0.9, stratified=FALSE,
+            plot=TRUE, auc.polygon=TRUE, max.auc.polygon=TRUE, grid=TRUE,
+            print.auc=TRUE, show.thres=TRUE)
+sens.ci <- ci.se(pROC_obj)
+plot(sens.ci, type="shape", col="lightblue")
+plot(sens.ci, type="bars")
+
+```{r}
+pROC_obj <- roc(model.results.dt$survived,model.results.dt$`1`,
+            smoothed = TRUE,
+            # arguments for ci
+            ci=TRUE, ci.alpha=0.9, stratified=FALSE,
+            # arguments for plot
+            plot=TRUE, auc.polygon=TRUE, max.auc.polygon=TRUE, grid=TRUE,
+            print.auc=TRUE, show.thres=TRUE)
+sens.ci <- ci.se(pROC_obj)
+plot(sens.ci, type="shape", col="lightblue")
+plot(sens.ci, type="bars")
+```
+
+
+
+## Support Vector Machines
+Für die Klassifikation wird das Package e1071 verwendet:
+
+```{r}
+library(e1071)
+classifier = svm(survived ~ .,
+                 data = train.data,
+                 type = 'C-classification',
+                 probability = TRUE,
+                 kernel = 'linear')
+```
+
+Wir nehmen die Test-Daten...
+
+```{r}
+# Predicting the Validation set results
+svm.predict = predict(classifier, newdata = test.data[,-which(names(test.data)=="survived")], probability = TRUE)
+```
+
+...und werfen das entstandene Modell auf die Test-Daten:
+
+```{r}
+# Checking the prediction accuracy
+table(test.data$survived, svm.predict) # Confusion matrix
+```
+
+Nun rechnen wir wieder die Genauigkeit aus:
+
+```{r}
+error <- mean(test.data$survived != svm.predict) # Misclassification error
+paste('Accuracy',round(1-error,4))
+```
+
+```{r}
+head(cbind(test.data,svm.predict), 20)
+```
+
+```{r}
+probs <- attr(svm.predict, "prob")[,2]
+```
+
+```{r}
+library(pROC)
+pROC_obj <- roc(as.numeric(test.data$survived), probs,
+            smoothed = TRUE,
+            ci=TRUE, ci.alpha=0.9, stratified=FALSE,
+            plot=TRUE, auc.polygon=TRUE, max.auc.polygon=TRUE, grid=TRUE,
+            print.auc=TRUE, show.thres=TRUE)
+sens.ci <- ci.se(pROC_obj)
+plot(sens.ci, type="shape", col="lightblue")
+plot(sens.ci, type="bars")
+```
+
+Wirklich gut sieht dies noch nicht aus.
+
+Hier noch ein Beispiel für einen anderen Kernel, eine nicht-lineare Support Vector Machine:
+
+```{r}
+
+classifier = svm(survived ~ .,
+                 data = train.data,
+                 type = 'C-classification',
+                 probability = TRUE,
+                 kernel = 'radial')
+
+svm.nlm.predict = predict(classifier, newdata = test.data[,-which(names(test.data)=="survived")], , probability = TRUE)
+
+
+table(test.data$survived, svm.nlm.predict) 
+
+error <- mean(test.data$Survived != svm.nlm.predict) 
+paste('Accuracy',round(1-error,4))
+```
+
+```{r}
+probs <- attr(svm.nlm.predict, "prob")[,2]
+```
+
+```{r}
+library(pROC)
+pROC_obj <- roc(as.numeric(test.data$survived), probs,
+            smoothed = TRUE,
+            ci=TRUE, ci.alpha=0.9, stratified=FALSE,
+            plot=TRUE, auc.polygon=TRUE, max.auc.polygon=TRUE, grid=TRUE,
+            print.auc=TRUE, show.thres=TRUE)
+sens.ci <- ci.se(pROC_obj)
+plot(sens.ci, type="shape", col="lightblue")
+plot(sens.ci, type="bars")
+```
+
+
+
+## Naive Bayes
+
+In dem folgenden Beispiel wird Naive Bayes verwendet. Dazu ein bisschen mathematischer Hintergrund. Die Wahrscheinlichkeit, dass A auftritt, wird in dem Ausdruck p(A) beschrieben (p für Probability). Die Wahrscheinlichkeit, dass A und B zusammen auftauchen, wird mit dem Ausdruck p(AB) beschrieben. Am Beispiel eines Würfels:
+
+$$p(AB) = p(A) * p(B)$$
+
+Die Wahrscheinlichkeit, dass nach einer 6 eine 1 gewürfelt wird, ist
+
+$$p(AB) = \frac{1}{6} * \frac{1}{6} = \frac{1}{36}$$
+denn das Ergebnis des zweiten Wurfs ist unabhängig vom Ergebnis des ersten Wurfs. Anders sieht es aus, wenn der Würfel gezinkt ist. Um auch diese Möglichkeit einzubeziehen, wird die Formel leicht geändert:
+
+$$p(AB) = p(A) · p(B | A)$$
+
+Es spielt übrigens keine Rolle, ob
+
+$$p(A) · p(B | A)$$
+oder
+$$p(B) · p(A | B)$$
+Daher können wir auch schreiben:
+
+$$p(A) · p(B | A) = p(B) · p(A | B)$$
+
+Teilt man nun beide Teile durch p(A), so ergibt sich die folgende Formel:
+
+$$p(B|A)= \frac{p(A|B)·p(B)} {p(A)}$$
+
+Nehen wir nun an, dass A eine Evidenz ist und B unsere Hypothese, dann kommen wir zum Satz von Bayes:
+
+$$p(H|E)= \frac{p(E|H)·p(H)} {p(E)}$$
+
+Naive Bayes sieht wie folgt aus, basierend darauf, dass häufig mehrere Konditionen verwendet werden, zum Beispiel im Titanic-Datensatz Geschlecht, Alter und Klasse (hier als $e_1, e_2, ... e_k$ aufgeführt):
+
+$$p(c|E) = \frac{p(e_1|c) * p(e_2|c) ... p(e_k|c) * p(c)}{p(E)}$$
+
+Es wird übrigens nur deswegen "Naive" genannt, weil von der Unabhängigkeit der Ereignisse ausgegangen wird. 
+
+Für ein Beispiel mit Naive Bayes wird wieder der Datensatz von der Titanic verwendet. Wir wollen herausfinden, ob wir auch mit Naive Bayes vorhersagen können, ob jemand das Unglück überlebt oder nicht.
+
+Beginnen wir mit einem einfachen Beispiel, in dem wir nur ein Feature aufnehmen, und zwar das Geschlecht. Umgangssprachlich könnte man das so ausdrücken:
+
+$$p(Survived|Mann) = \frac{p(Mann|Survived) · p(Survived)}{p(Mann)}$$
+
+
+In die Formel eingesetzt:
+
+$$p(Survived|Mann) = \frac{0.212 · 0.323}{0.786} = 0.0871$$
+
+
+
+Die Library e1071 kann auch für NaiveBayes verwendet werden, das Trainieren startet wieder mit einem einfachen Befehl:
+
+```{r}
+#Fitting the Naive Bayes model
+Naive_Bayes_Model=naiveBayes(survived ~., data=train.data, type = "raw")
+#What does the model say? Print the model summary
+Naive_Bayes_Model
+```
+
+Nun wird das Modell auf die Test-Daten "geworfen":
+
+```{r}
+Titanic.class <- predict(Naive_Bayes_Model, test.data)
+table(Titanic.class, test.data$survived)
+```
+
+
+```{r}
+prop.table(table(Titanic.class))
+```
+
+Nun schauen wir uns die Genauigkeit unseres Modells an:
+
+```{r}
+mean(test.data$survived==Titanic.class)
+```
+
+
+Mit cbind können wir uns die Prediction zusammen mit den Originaldaten sehen und somit sehen, wo der Algorithmus richtig und wo er falsch gelegen hat.
+
+```{r}
+head(model.results <- cbind(test.data,Titanic.class),20)
+```
+
+Auch kann für jedes Segment überprüft werden, wie gut der Klassifikator gearbeitet hat.
+
+```{r}
+#table(Titanic.class, test.data$Class)
+```
+
+
+```{r}
+Titanic.class <- predict(Naive_Bayes_Model, test.data, type = "raw")
+```
+
+```{r}
+titanic.probs <- Titanic.class[,2]
+```
+
+
+```{r}
+library(pROC)
+pROC_obj <- roc(as.numeric(model.results$survived), titanic.probs,
+            smoothed = TRUE,
+            ci=TRUE, ci.alpha=0.9, stratified=FALSE,
+            plot=TRUE, auc.polygon=TRUE, max.auc.polygon=TRUE, grid=TRUE,
+            print.auc=TRUE, show.thres=TRUE)
+sens.ci <- ci.se(pROC_obj)
+plot(sens.ci, type="shape", col="lightblue")
+plot(sens.ci, type="bars")
+```
+Dies geht langsam in die richtige Richtung :)
+
+
+
+## XG Boost
+
+```{r}
+library(xgboost)
+```
+
+
+
+```{r}
+dtrain <- as.matrix(train.data[,-1])
+mode(dtrain) <- 'double'
+```
+
+```{r}
+train.data.xg <- train.data %>%
+  mutate(survived = as.integer(if_else(survived == "0",0,1)))
+```
+
+
+```{r}
+xgb <- xgboost(
+  dtrain, 
+  label = train.data.xg$survived, 
+  nround=100, 
+  max_depth = 10, eta = 0.1, verbose = 0, nthread = 8, objective = "binary:logistic", nfold = 5
+)
+```
+
+
+```{r}
+xg_matrix <- as.matrix(test.data[,-1])
+pred <- predict(xgb, xg_matrix)
+print(head(pred))
+```
+
+```{r}
+xgb.df <- as.data.frame(pred)
+head(results.xg2 <- cbind(xgb.df,test.data))
+```
+
+
+```{r}
+pROC_obj <- roc(results.xg2$survived,results.xg2$pred,
+            smoothed = TRUE,
+            # arguments for ci
+            ci=TRUE, ci.alpha=0.9, stratified=FALSE,
+            # arguments for plot
+            plot=TRUE, auc.polygon=TRUE, max.auc.polygon=TRUE, grid=TRUE,
+            print.auc=TRUE, show.thres=TRUE)
+
+
+sens.ci <- ci.se(pROC_obj)
+plot(sens.ci, type="shape", col="lightblue")
+## Warning in plot.ci.se(sens.ci, type = "shape", col = "lightblue"): Low
+## definition shape.
+plot(sens.ci, type="bars")
+```
+```{r}
+mat <- xgb.importance (feature_names = colnames(train.data.xg[,-1]),model = xgb)
+xgb.plot.importance (importance_matrix = mat[1:10]) 
+```
+
+
+## Klassifikation von Mails in Ham und Spam
+
+Wer es noch nicht wusste, der Grund dafür, dass wir unerwünschte Werbe-Emails als Spam bezeichnen, ist ein alter Monty Python-Sketch. Das folgende Beispiel ist inspiriert von [Harshit Kumar](https://kharshit.github.io/blog/2017/08/25/email-spam-filtering-text-analysis-in-r).
+
+```{r}
+emails = read.csv('data/emails.csv', stringsAsFactors = FALSE)
+table(emails$spam)
+```
+
+Wir nutzen zwei Libraries, tm, das für Text Mining verwendet wird, und SnowballC, ein Stemmer. Damit bilden wir einen Corpus:
+
+```{r}
+library(tm)
+library(SnowballC)
+corpus = VCorpus(VectorSource(emails$text))
+corpus = tm_map(corpus, content_transformer(tolower))
+corpus = tm_map(corpus, PlainTextDocument)
+corpus = tm_map(corpus, removePunctuation)
+corpus = tm_map(corpus, removeWords, stopwords("en"))
+corpus = tm_map(corpus, stemDocument)
+```
+
+Als nächstes wird eine Document Term Matrix gebildet:
+
+```{r}
+dtm = DocumentTermMatrix(corpus)
+dtm
+```
+
+Daraus werden nur die häufigsten Terme verwendet:
+
+```{r}
+spdtm = removeSparseTerms(dtm, 0.95)
+spdtm
+```
+
+Daraus wird ein Data Frame erstellt:
+
+```{r}
+emailsSparse = as.data.frame(as.matrix(spdtm))
+colnames(emailsSparse) = make.names(colnames(emailsSparse))
+emailsSparse$spam = emails$spam
+emailsSparse$spam = as.factor(emailsSparse$spam)
+```
+
+Nun wird wie gehabt der Corpus geteilt in Training und Test:
+```{r}
+set.seed(983)
+trainIndex=createDataPartition(emailsSparse$spam, p=0.8)$Resample1
+train.data=emailsSparse[trainIndex, ]
+test.data=emailsSparse[-trainIndex, ]
+```
+
+Es wird ein Naive Bayes-Modell gebildet:
+
+```{r}
+Naive_Bayes_Model=naiveBayes(spam ~., data=train.data, type = "raw")
+```
+
+```{r}
+Spam.class <- predict(Naive_Bayes_Model, test.data)
+table(Spam.class, test.data$spam)
+```
+
+```{r}
+mean(test.data$spam==Spam.class)
+```
+
+```{r}
+model.results <- cbind(test.data,Spam.class)
+```
+
+```{r}
+Spam.class <- predict(Naive_Bayes_Model, test.data, type = "raw")
+probs.spam <- Spam.class[,2]
+```
+
+```{r}
+real_spam <- as.numeric(as.character(model.results$spam))
+```
+
+```{r}
+
+pROC_obj <- roc(real_spam, probs.spam,
+            smoothed = TRUE,
+            ci=TRUE, ci.alpha=0.9, stratified=FALSE,
+            plot=TRUE, auc.polygon=TRUE, max.auc.polygon=TRUE, grid=TRUE,
+            print.auc=TRUE, show.thres=TRUE)
+
+sens.ci <- ci.se(pROC_obj)
+plot(sens.ci, type="shape", col="lightblue")
+plot(sens.ci, type="bars")
+```
+
+
+

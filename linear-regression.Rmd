@@ -1,0 +1,171 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+leads <- c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15)
+budget <- c(2,1,2,4,4,5,5,8,8,9,10,11,11,13,15,15)
+work_hard <- data.frame(leads, budget)
+fit <- lm(work_hard$leads ~ work_hard$budget)
+plot(work_hard)
+abline(fit)
+```
+
+```{r}
+
+budget <- c(2,1,2,4,4,5,5,8,8,9,10,11,11,13,15,15)
+leads <- c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15)
+work_hard <- data.frame(budget,leads)
+fit <- lm(work_hard$leads ~ work_hard$budget)
+plot(work_hard)
+abline(fit)
+
+
+```
+
+```{r}
+budget <- c(1,2,11,12)
+leads <- c(1,1,10,10)
+work_hard <- data.frame(budget,leads)
+fit <- lm(work_hard$leads ~ work_hard$budget)
+plot(work_hard)
+abline(fit)
+```
+```{r}
+summary(fit)
+```
+
+```{r}
+set.seed(55)
+x<-seq(0,50,1)
+y<-((runif(1,10,20)*x)/(runif(1,0,10)+x))+rnorm(51,0,1)
+plot(x,y)
+```
+
+```{r}
+cor.test(x,y)
+```
+
+```{r}
+fit2 <- lm(y~x)
+plot(x,y)
+abline(fit2, col = "red")
+```
+
+```{r}
+summary(fit2)
+```
+```{r}
+m<-nls(y~a*x/(b+x))
+```
+
+```{r}
+plot(x,y)
+lines(x,predict(m),lty=2,col="red",lwd=3)
+```
+
+
+```{r}
+plot(log(x),log(y))
+```
+
+```{r}
+fit_log <- lm(log(y)~log(x))
+```
+
+```{r}
+summary(fit_log)
+```
+```{r}
+plot(log(x),log(y))
+abline(fit_log, col = "red")
+```
+
+```{r}
+#simulate some data, this without a priori knowledge of the parameter value
+y<-runif(1,5,15)*exp(-runif(1,0.01,0.05)*x)+rnorm(51,0,0.5)
+#visually estimate some starting parameter values
+plot(x,y)
+#from this graph set approximate starting values
+a_start<-13 #param a is the y value when x=0
+b_start<-2*log(2)/a_start #b is the decay rate
+#model
+m<-nls(y~a*exp(-b*x),start=list(a=a_start,b=b_start))
+#get some estimation of goodness of fit
+#cor(y,predict(m))
+#plot the fit
+plot(x,y)
+lines(x,predict(m),col="red",lty=2,lwd=3)
+```
+
+```{r}
+library(forecast)
+```
+
+```{r}
+require(datasets)
+```
+
+```{r}
+plot(USAccDeaths)
+```
+
+```{r}
+ets_model = ets(USAccDeaths, allow.multiplicative.trend = TRUE)
+summary(ets_model)
+```
+
+```{r}
+fit <- ets(USAccDeaths)
+plot(forecast(fit))
+```
+```{r}
+plot(fit)
+```
+
+
+```{r}
+HW1 <- HoltWinters(USAccDeaths, alpha=0.4, beta=0.1, gamma=0.1)
+# Custom HoltWinters fitting
+HW2 <- HoltWinters(USAccDeaths, alpha=0.2, beta=0.1, gamma=0.1)
+#Visually evaluate the fits
+plot(USAccDeaths, ylab="Verkehrstote", xlim=c(1973,1979))
+lines(HW1$fitted[,1], lty=2, col="blue")
+lines(HW2$fitted[,1], lty=2, col="red")
+```
+```{r}
+HW1_for <- forecast(HW1, h=10, level=c(80,95))
+#visualize our predictions:
+plot(HW1_for, xlim=c(1973, 1979))
+#lines(HW1_for$fitted, lty=2, col="purple")
+```
+
+```{r}
+library(forecast)
+USAccDeaths %>%
+  ets() %>%
+  forecast() %>%
+  autoplot()
+```
+```{r}
+as_tsibble(USAccDeaths) %>%
+      model(lm = TSLM(log(value) ~ trend() + season())) %>%
+      fitted()
+```
+```{r}
+us_accidental_deaths <- as_tsibble(USAccDeaths)
+fit <- head(us_accidental_deaths, -24) %>% 
+  model(ARIMA(value))
+fit_test <- refit(fit, tail(us_accidental_deaths, 24), reestimate = FALSE)
+accuracy(fit_test)
+```
+```{r}
+decomposed <- decompose(USAccDeaths)
+plot(decomposed)
+```
+```{r}
+fit <- HoltWinters(USAccDeaths)
+plot(forecast(fit))
+```
+
