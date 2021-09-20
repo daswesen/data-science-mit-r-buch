@@ -4,6 +4,7 @@ title: "R Notebook"
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE}
 library(tidyverse)
+library(caret)
 library(pROC)
 ```
 
@@ -13,7 +14,7 @@ library(pROC)
 
 
 ```{r}
-titanic <- read_delim("titanic.csv", delim = ";", 
+titanic <- read_delim("data/titanic.csv", delim = ";", 
     escape_double = FALSE, trim_ws = TRUE)
 ```
 
@@ -24,7 +25,7 @@ titanic <- read_delim("titanic.csv", delim = ";",
 Eine andere Möglichkeit, Dummy-Variablen zu erstellen, bietet das Caret-Package. Der Parameter fullRank sorgt dafür, dass wir Anzahl Merkmalsausprägungen - 1 erzeugen:
 
 ```{r}
-library(caret)
+
 dmy <- dummyVars(" ~ sex", data = titanic, fullRank=T)
 trsf <- data.frame(predict(dmy, newdata = titanic))
 print(trsf)
@@ -50,6 +51,13 @@ train.data=titanic_subset[trainIndex, ]
 test.data=titanic_subset[-trainIndex, ]
 ```
 
+```{r}
+table(titanic$survived,titanic$sex)
+```
+
+```{r}
+table(train.data$survived,train.data$sex)
+```
 
 ## Decision Tree
 ```{r}
@@ -78,7 +86,7 @@ sens.ci <- ci.se(pROC_obj)
 plot(sens.ci, type="shape", col="lightblue")
 plot(sens.ci, type="bars")
 
-```{r}
+```{r warning=FALSE}
 pROC_obj <- roc(model.results.dt$survived,model.results.dt$`1`,
             smoothed = TRUE,
             # arguments for ci
@@ -98,6 +106,7 @@ Für die Klassifikation wird das Package e1071 verwendet:
 
 ```{r}
 library(e1071)
+cbind(train.data[,1],scale(train.data[,2:4]))
 classifier = svm(survived ~ .,
                  data = train.data,
                  type = 'C-classification',
@@ -108,8 +117,19 @@ classifier = svm(survived ~ .,
 Wir nehmen die Test-Daten...
 
 ```{r}
+library(scatterplot3d)
+colors <- c("#000000", "#C0C0C0")
+colors <- colors[as.numeric(train.data$survived)]
+scatterplot3d(train.data[,-1], color=colors)
+```
+
+
+
+
+
+```{r}
 # Predicting the Validation set results
-svm.predict = predict(classifier, newdata = test.data[,-which(names(test.data)=="survived")], probability = TRUE)
+svm.predict = predict(classifier, newdata = test.data[,-1], probability = TRUE)
 ```
 
 ...und werfen das entstandene Modell auf die Test-Daten:
@@ -127,7 +147,7 @@ paste('Accuracy',round(1-error,4))
 ```
 
 ```{r}
-head(cbind(test.data,svm.predict), 20)
+head(cbind(test.data,svm.predict), 10)
 ```
 
 ```{r}
@@ -135,7 +155,7 @@ probs <- attr(svm.predict, "prob")[,2]
 ```
 
 ```{r}
-library(pROC)
+probs <- attr(svm.predict, "prob")[,2]
 pROC_obj <- roc(as.numeric(test.data$survived), probs,
             smoothed = TRUE,
             ci=TRUE, ci.alpha=0.9, stratified=FALSE,
@@ -158,7 +178,7 @@ classifier = svm(survived ~ .,
                  probability = TRUE,
                  kernel = 'radial')
 
-svm.nlm.predict = predict(classifier, newdata = test.data[,-which(names(test.data)=="survived")], , probability = TRUE)
+svm.nlm.predict = predict(classifier, newdata = test.data[,-1], , probability = TRUE)
 
 
 table(test.data$survived, svm.nlm.predict) 
@@ -187,67 +207,29 @@ plot(sens.ci, type="bars")
 
 ## Naive Bayes
 
-In dem folgenden Beispiel wird Naive Bayes verwendet. Dazu ein bisschen mathematischer Hintergrund. Die Wahrscheinlichkeit, dass A auftritt, wird in dem Ausdruck p(A) beschrieben (p für Probability). Die Wahrscheinlichkeit, dass A und B zusammen auftauchen, wird mit dem Ausdruck p(AB) beschrieben. Am Beispiel eines Würfels:
+```{r}
+train.data.nb <- train.data %>%
+  mutate(pclass = as.factor(pclass)) %>%
+  mutate(age = as.factor(if_else(age > 14, "adult", "child"))) 
 
-$$p(AB) = p(A) * p(B)$$
-
-Die Wahrscheinlichkeit, dass nach einer 6 eine 1 gewürfelt wird, ist
-
-$$p(AB) = \frac{1}{6} * \frac{1}{6} = \frac{1}{36}$$
-denn das Ergebnis des zweiten Wurfs ist unabhängig vom Ergebnis des ersten Wurfs. Anders sieht es aus, wenn der Würfel gezinkt ist. Um auch diese Möglichkeit einzubeziehen, wird die Formel leicht geändert:
-
-$$p(AB) = p(A) · p(B | A)$$
-
-Es spielt übrigens keine Rolle, ob
-
-$$p(A) · p(B | A)$$
-oder
-$$p(B) · p(A | B)$$
-Daher können wir auch schreiben:
-
-$$p(A) · p(B | A) = p(B) · p(A | B)$$
-
-Teilt man nun beide Teile durch p(A), so ergibt sich die folgende Formel:
-
-$$p(B|A)= \frac{p(A|B)·p(B)} {p(A)}$$
-
-Nehen wir nun an, dass A eine Evidenz ist und B unsere Hypothese, dann kommen wir zum Satz von Bayes:
-
-$$p(H|E)= \frac{p(E|H)·p(H)} {p(E)}$$
-
-Naive Bayes sieht wie folgt aus, basierend darauf, dass häufig mehrere Konditionen verwendet werden, zum Beispiel im Titanic-Datensatz Geschlecht, Alter und Klasse (hier als $e_1, e_2, ... e_k$ aufgeführt):
-
-$$p(c|E) = \frac{p(e_1|c) * p(e_2|c) ... p(e_k|c) * p(c)}{p(E)}$$
-
-Es wird übrigens nur deswegen "Naive" genannt, weil von der Unabhängigkeit der Ereignisse ausgegangen wird. 
-
-Für ein Beispiel mit Naive Bayes wird wieder der Datensatz von der Titanic verwendet. Wir wollen herausfinden, ob wir auch mit Naive Bayes vorhersagen können, ob jemand das Unglück überlebt oder nicht.
-
-Beginnen wir mit einem einfachen Beispiel, in dem wir nur ein Feature aufnehmen, und zwar das Geschlecht. Umgangssprachlich könnte man das so ausdrücken:
-
-$$p(Survived|Mann) = \frac{p(Mann|Survived) · p(Survived)}{p(Mann)}$$
-
-
-In die Formel eingesetzt:
-
-$$p(Survived|Mann) = \frac{0.212 · 0.323}{0.786} = 0.0871$$
-
+test.data.nb <- test.data %>%
+  mutate(pclass = as.factor(pclass)) %>%
+  mutate(age = as.factor(if_else(age > 14, "adult", "child")))
+```
 
 
 Die Library e1071 kann auch für NaiveBayes verwendet werden, das Trainieren startet wieder mit einem einfachen Befehl:
 
 ```{r}
-#Fitting the Naive Bayes model
-Naive_Bayes_Model=naiveBayes(survived ~., data=train.data, type = "raw")
-#What does the model say? Print the model summary
+Naive_Bayes_Model=naiveBayes(survived ~., data=train.data.nb, type = "raw")
 Naive_Bayes_Model
 ```
 
 Nun wird das Modell auf die Test-Daten "geworfen":
 
 ```{r}
-Titanic.class <- predict(Naive_Bayes_Model, test.data)
-table(Titanic.class, test.data$survived)
+Titanic.class <- predict(Naive_Bayes_Model, test.data.nb[,-1])
+table(Titanic.class, test.data.nb$survived)
 ```
 
 
@@ -257,35 +239,28 @@ prop.table(table(Titanic.class))
 
 Nun schauen wir uns die Genauigkeit unseres Modells an:
 
-```{r}
-mean(test.data$survived==Titanic.class)
-```
+
 
 
 Mit cbind können wir uns die Prediction zusammen mit den Originaldaten sehen und somit sehen, wo der Algorithmus richtig und wo er falsch gelegen hat.
 
 ```{r}
-head(model.results <- cbind(test.data,Titanic.class),20)
+head(model.results <- cbind(test.data.nb,Titanic.class),20)
 ```
 
 Auch kann für jedes Segment überprüft werden, wie gut der Klassifikator gearbeitet hat.
 
 ```{r}
-#table(Titanic.class, test.data$Class)
+#table(as.data.frame(Titanic.class), test.data.nb$Class)
 ```
 
 
-```{r}
-Titanic.class <- predict(Naive_Bayes_Model, test.data, type = "raw")
-```
 
-```{r}
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+Titanic.class <- predict(Naive_Bayes_Model, test.data.nb[,-1], type = "raw")
 titanic.probs <- Titanic.class[,2]
-```
-
-
-```{r}
-library(pROC)
 pROC_obj <- roc(as.numeric(model.results$survived), titanic.probs,
             smoothed = TRUE,
             ci=TRUE, ci.alpha=0.9, stratified=FALSE,
@@ -322,8 +297,8 @@ train.data.xg <- train.data %>%
 xgb <- xgboost(
   dtrain, 
   label = train.data.xg$survived, 
-  nround=100, 
-  max_depth = 10, eta = 0.1, verbose = 0, nthread = 8, objective = "binary:logistic", nfold = 5
+  nrounds=100, 
+  max_depth = 10, eta = 0.1, verbose = 0, nthread = 8, objective = "binary:logistic"
 )
 ```
 
@@ -339,8 +314,20 @@ xgb.df <- as.data.frame(pred)
 head(results.xg2 <- cbind(xgb.df,test.data))
 ```
 
-
 ```{r}
+xgb2 <- xgboost(
+  dtrain, 
+  label = train.data.xg$survived, 
+  nrounds=100, 
+  max_depth = 10, eta = 0.1, verbose = 0, nthread = 8, objective = "binary:hinge"
+)
+pred2 <- predict(xgb2, xg_matrix)
+confusionMatrix(as.factor(pred2),factor(test.data$survived))
+
+```
+
+
+```{r warning=FALSE, message=FALSE}
 pROC_obj <- roc(results.xg2$survived,results.xg2$pred,
             smoothed = TRUE,
             # arguments for ci
@@ -426,9 +413,7 @@ Spam.class <- predict(Naive_Bayes_Model, test.data)
 table(Spam.class, test.data$spam)
 ```
 
-```{r}
-mean(test.data$spam==Spam.class)
-```
+
 
 ```{r}
 model.results <- cbind(test.data,Spam.class)
@@ -436,16 +421,14 @@ model.results <- cbind(test.data,Spam.class)
 
 ```{r}
 Spam.class <- predict(Naive_Bayes_Model, test.data, type = "raw")
-probs.spam <- Spam.class[,2]
-```
-
-```{r}
 real_spam <- as.numeric(as.character(model.results$spam))
 ```
 
-```{r}
 
-pROC_obj <- roc(real_spam, probs.spam,
+
+```{r warning=FALSE, message=FALSE}
+
+pROC_obj <- roc(real_spam, Spam.class[,2],
             smoothed = TRUE,
             ci=TRUE, ci.alpha=0.9, stratified=FALSE,
             plot=TRUE, auc.polygon=TRUE, max.auc.polygon=TRUE, grid=TRUE,
@@ -457,4 +440,7 @@ plot(sens.ci, type="bars")
 ```
 
 
+```{r}
+Naive_Bayes_Model
+```
 

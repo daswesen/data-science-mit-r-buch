@@ -1,0 +1,26 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r warning=FALSE}
+titanic %>%
+  mutate(survived = as.factor(survived)) %>%
+  ggplot(., aes(x=pclass, fill=survived)) +
+  geom_bar() +
+  scale_fill_brewer(palette="Paired")+
+  theme_minimal()
+```
+
+```{r warning=FALSE}
+titanic %>%
+  mutate(survived = as.factor(survived)) %>%
+  mutate(age = as.double(str_replace(age,",","."))) %>%
+  filter(!is.na(age)) %>%
+  ggplot(., aes(x=survived, y=age, fill=sex)) +
+  geom_boxplot(varwidth=TRUE) +
+  facet_grid(cols = vars(pclass))
+```
+
+
+
