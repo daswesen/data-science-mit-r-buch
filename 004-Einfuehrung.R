@@ -1,5 +1,8 @@
 # Der allererste Befehl in jeder Programmiersprache :)
+
 print("hello world")
+
+# R kann man wie einen Taschenrechner benutzen.
 
 7+4
 
