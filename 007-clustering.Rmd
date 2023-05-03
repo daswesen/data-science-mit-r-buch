@@ -56,8 +56,13 @@ heights_teachers
 ```
 
 ```{r}
+teachers <- as.data.frame(cbind(ages_teachers, heights_teachers))
 teachers <- teachers %>%
   rename(age = ages_teachers, height = heights_teachers)
+
+pupils <- as.data.frame(cbind(ages_pupils, heights_pupils))
+pupils <- pupils %>%
+  rename(age = ages_pupils, height = heights_pupils)
 ```
 
 ```{r}
@@ -84,10 +89,19 @@ sd(school$age)
 head(scale(school))
 ```
 ```{r}
+school.dist <- dist(scale(school))
+```
+
+
+```{r}
 school.hc <- hclust(school.dist, method = "complete")
 plot(school.hc)
 #groups <- cutree(school.hc, k=3) 
 rect.hclust(school.hc, k=3, border="red")
+```
+
+```{r}
+wine <- read_csv("data/wine.data", col_names = FALSE)
 ```
 
 

@@ -135,3 +135,74 @@ library(nycflights13)
 flights
 ```
 
+```{r}
+my_flights <- flights %>%
+  left_join(airlines) %>%
+  rename(airline = name) %>%
+  left_join(airports, c("dest" = "faa")) %>%
+  rename(airport = name) %>%
+  left_join(weather) %>%
+  left_join(planes, by = "tailnum")
+```
+
+```{r}
+summary(my_flights$dep_delay)
+```
+
+```{r}
+data <- my_flights %>%
+  filter(dep_delay > 10)
+  ggplot(data = data,  aes(x=dep_delay)) +
+    geom_histogram(binwidth = 15)
+```
+
+```{r}
+ggplot(data = data, aes(x=dep_delay)) + geom_boxplot() +
+scale_x_continuous(breaks= seq(0, 1350, by=60))
+```
+
+Vorsicht, die Ausführung dieses Befehls kann einiges an Zeit und Performance benötigen:
+```{r}
+pairs(~dep_delay + speed + distance + arr_delay + engines + seats +
+temp + wind_speed, data=my_flights)
+```
+
+```{r}
+my_flights %>%
+  select(dep_delay,arr_delay) %>%
+  filter(dep_delay > 10) %>%
+  plot()
+```
+
+```{r}
+dep_arr_delay <- my_flights %>%
+   select(dep_delay,arr_delay) %>%
+   filter(dep_delay > 10)
+```
+
+
+```{r}
+cor.test(dep_arr_delay$dep_delay,dep_arr_delay$arr_delay)
+```
+
+```{r}
+engines_delay <- my_flights %>%
+  select(engines,dep_delay) %>%
+  filter(!is.na(dep_delay)) %>%
+  filter(!is.na(engines))
+boxplot(engines_delay$dep_delay~engines_delay$engines, varwidth=TRUE)
+```
+
+```{r}
+my_flights %>%
+ group_by(engines) %>%
+ summarize(anzahl_engines = n())
+```
+
+```{r}
+my_flights %>%
+  select(dep_time,dep_delay) %>%
+  filter(dep_delay>10) %>%
+  plot()
+```
+
