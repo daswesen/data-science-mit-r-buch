@@ -8,7 +8,7 @@ library(tidyverse)
 ```
 
 ```{r}
-credit_data <- read_table2("~/Desktop/german.data.csv", 
+credit_data <- read_table2("Data/german.data.csv", 
     col_names = FALSE)
 ```
 

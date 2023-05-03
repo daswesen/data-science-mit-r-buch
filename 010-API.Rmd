@@ -1,6 +1,5 @@
 ---
 title: "R Notebook"
-output: html_notebook
 ---
 
 ```{r}
@@ -8,3 +7,6 @@ install.packages("plumber")
 library(plumber)
 ```
 
+Bitte nutzen Sie nun den folgenden Befehl in der Console:
+
+pr("plumber.R") %>% pr_run(port=8000)

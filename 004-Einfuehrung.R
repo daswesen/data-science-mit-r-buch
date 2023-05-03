@@ -12,11 +12,11 @@ ergebnis
 
 (ergebnis <- 7 + 4)
 
-Ergebnis
+ergebnis
 
-zweites ergebnis <- 7-2
+# zweites ergebnis <- 7-2
 
-ergebnis-2 <- 3
+# ergebnis-2 <- 3
 
 ergebnis-2
 

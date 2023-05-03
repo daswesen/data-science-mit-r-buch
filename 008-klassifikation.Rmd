@@ -9,18 +9,10 @@ library(pROC)
 ```
 
 
-
-
-
-
 ```{r}
 titanic <- read_delim("data/titanic.csv", delim = ";", 
     escape_double = FALSE, trim_ws = TRUE)
 ```
-
-
-
-
 
 Eine andere Möglichkeit, Dummy-Variablen zu erstellen, bietet das Caret-Package. Der Parameter fullRank sorgt dafür, dass wir Anzahl Merkmalsausprägungen - 1 erzeugen:
 

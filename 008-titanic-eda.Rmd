@@ -1,7 +1,12 @@
 ---
 title: "R Notebook"
-output: html_notebook
 ---
+
+```{r}
+titanic <- read_delim("data/titanic.csv", 
+    delim = ";", escape_double = FALSE, trim_ws = TRUE)
+```
+
 
 ```{r warning=FALSE}
 titanic %>%

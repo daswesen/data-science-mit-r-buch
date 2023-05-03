@@ -4,7 +4,7 @@ title: "Kapitel 10: Sparklyr"
 
 ```{r}
 # Install only once the first time
-install.packages("sparklyr")
+# install.packages("sparklyr")
 ```
 
 ```{r}
@@ -20,7 +20,7 @@ spark_available_versions()
 
 ```{r}
 # Install only once the first time
-spark_install(version = "3.1")
+# spark_install(version = "3.1")
 ```
 
 ```{r}
@@ -43,7 +43,7 @@ sc <- spark_connect(master = "local",
 
 ```{r}
 # Nur beim ersten Mal installieren
-install.packages("nycflights13")
+# install.packages("nycflights13")
 ```
 
 ```{r}
@@ -59,7 +59,7 @@ flights_delay <- flights_tbl %>%
 
 ```{r}
 flights_delay %>%
-  ggplot(delay, aes(dist, delay)) +
+  ggplot(., aes(dist, delay)) +
   geom_point(aes(size = count), alpha = 1/2) +
   geom_smooth() +
   scale_size_area(max_size = 2)
@@ -95,34 +95,5 @@ ggplot(delay, aes(dist, delay)) +
   scale_size_area(max_size = 2)
 ```
 
-```{r}
-flights_tbl %>%
-  select(arr_delay,dep_delay) %>%
-  plot()
-```
-
-
-```{r}
-dt <- spark_read_csv(sc, "dt", "../rstudio/amz_small.csv")
-```
-
-```{r cache=TRUE}
-dt <- dt %>%
-  select(title,description,pubDate,item1,item2,item3,item4,item5,item6,item7,item8,item9,item10)
-```
-
-```{r}
-dt <- dt %>%
-  filter(!str_detect( "Oct 2017", pubDate))%>%
-  filter(!str_detect( "Jan 2017",pubDate)) %>%
-  filter(!str_detect( "Feb 2017",pubDate)) %>%
-  filter(!str_detect("Mar 2017", pubDate)) %>%
-   filter(!str_detect("Apr 2017", pubDate))%>%
-   filter(!str_detect("May 2017", pubDate))
-```
-
-```{r}
-my_dt <- collect(dt)
-```
 
 
